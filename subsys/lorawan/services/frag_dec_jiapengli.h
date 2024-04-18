@@ -71,6 +71,7 @@ int frag_dec_init(frag_dec_t *obj);
 int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len);
 
 void frag_dec_log_bits(bm_t *bitmap, int len);
+void frag_dec_log_bits_new(struct sys_bitarray *bitmap, int len);
 void frag_dec_log_buf(const uint8_t *buf, int len);
 void frag_dec_log(frag_dec_t *obj);
 

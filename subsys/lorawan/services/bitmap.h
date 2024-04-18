@@ -37,6 +37,8 @@ But since there's no C/C++ functionality for them, they're only accessible via c
 
 */
 
+#include <zephyr/sys/bitarray.h>
+
 #if defined BM_4
 typedef uint32_t bm_t;
 #define BM_UNIT (sizeof(bm_t) * 8)
@@ -74,5 +76,30 @@ int m2t_map(int x, int y, int m);
 bool m2t_get(bm_t *m2tbm, int x, int y, int m);
 void m2t_set(bm_t *m2tbm, int x, int y, int m);
 void m2t_clr(bm_t *m2tbm, int x, int y, int m);
+
+bool bit_get_new(struct sys_bitarray *bitmap, int index);
+
+void bit_set_new(struct sys_bitarray *bitmap, int index);
+
+void bit_clr_new(struct sys_bitarray *bitmap, int index);
+
+int bit_count_ones_new(struct sys_bitarray *bitmap, int index);
+
+int bit_ffs_new(struct sys_bitarray *bitmap, int size);
+
+/* find the nth set */
+int bit_fns_new(struct sys_bitarray *bitmap, int size, int n);
+
+void bit_xor_new(struct sys_bitarray *des, struct sys_bitarray *src, int size);
+
+bool bit_is_all_clear_new(struct sys_bitarray *bitmap, int size);
+
+void bit_clear_all_new(struct sys_bitarray *bitmap, int size);
+
+bool m2t_get_new(struct sys_bitarray *m2tbm, int x, int y, int m);
+void m2t_set_new(struct sys_bitarray *m2tbm, int x, int y, int m);
+void m2t_clr_new(struct sys_bitarray *m2tbm, int x, int y, int m);
+
+
 
 #endif /* __BITMAP_H */

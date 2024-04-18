@@ -44,6 +44,14 @@ int bit_count_ones(bm_t *bitmap, int index)
 	return cnt;
 }
 
+int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
+{
+	size_t count;
+	int ret = sys_bitarray_popcount_region(bitmap, index+1, 0, &count);
+	__ASSERT_NO_MSG(ret == 0);
+	return count;
+}
+
 int bit_ffs(bm_t *bitmap, int size)
 {
 #if 0
@@ -178,4 +186,62 @@ void m2t_clr(bm_t *m2tbm, int x, int y, int m)
 		return;
 	}
 	bit_clr(m2tbm, (y + 1) * (m + m - y) / 2 - (m - x));
+}
+
+bool m2t_get_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+{
+	int bit;
+
+	if (x < y) {
+		return false;
+	}
+
+	sys_bitarray_test_bit(m2tbm, m2t_map(x,y,m), &bit);
+
+	return bit;
+}
+
+void m2t_set_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+{
+	if (x < y) {
+		return;
+	}
+	sys_bitarray_set_bit(m2tbm, m2t_map(x,y,m));
+}
+
+void m2t_clr_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+{
+	if (x < y) {
+		return;
+	}
+	sys_bitarray_clear_bit(m2tbm, m2t_map(x,y,m));
+}
+
+bool bit_get_new(struct sys_bitarray *bitmap, int index)
+{
+	int lost_frm_bit;
+
+	sys_bitarray_test_bit(bitmap, index, &lost_frm_bit);
+	return lost_frm_bit;
+}
+
+void bit_set_new(struct sys_bitarray *bitmap, int index)
+{
+    sys_bitarray_set_bit(bitmap, index);
+}
+
+void bit_clr_new(struct sys_bitarray *bitmap, int index)
+{
+    sys_bitarray_clear_bit(bitmap, index);
+}
+
+int bit_fns_new(struct sys_bitarray *bitmap, int size, int n)
+{
+    size_t frame_index;
+    int ret = sys_bitarray_find_nth_set(bitmap, n, size, 0, &frame_index);
+    if (ret == 1) {
+        return -1;
+    }
+    __ASSERT_NO_MSG(ret == 0);
+    return frame_index;
 }
