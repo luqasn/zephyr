@@ -283,67 +283,41 @@ void bit_clr_new(struct sys_bitarray *bitmap, int index)
 
 int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
 {
-	bm_t *clone = __clone(bitmap);
-	int a = bit_count_ones(clone, index);
 	size_t count;
-	int ret = sys_bitarray_popcount_region(bitmap, index+1, 0, &count);
+	int ret = sys_bitarray_popcount_region(bitmap, index + 1, 0, &count);
 	__ASSERT_NO_MSG(ret == 0);
 	int b = count;
-	__ASSERT(a == b, "popcount wrong");
 	return b;
 }
 
 void bit_xor_new(struct sys_bitarray *des, struct sys_bitarray *src, int size)
 {
-	bm_t *clone_des = __clone(des);
-	bm_t *clone_src = __clone(src);
-	bit_xor(clone_des, clone_src, size);
     sys_bitarray_xor(des, src, size, 0);
-    __cmp_all(clone_des, des);
 }
 
 bool bit_is_all_clear_new(struct sys_bitarray *bitmap, int size)
 {
-	bm_t *clone = __clone(bitmap);
-	bool a = bit_is_all_clear(clone, size);
-	bool b = sys_bitarray_is_region_cleared(bitmap, size, 0);
-	__ASSERT(a == b, "all_clear wrong");
-	return b;
+	return sys_bitarray_is_region_cleared(bitmap, size, 0);
 }
 
 int bit_ffs_new(struct sys_bitarray *bitmap, int size)
 {
-	bm_t *clone = __clone(bitmap);
-	int a = bit_ffs(clone, size);
-	int b = bit_fns_new(bitmap, size, 1);
-	__frag_dec_log_bits_new(bitmap, size);
-	__ASSERT(a == b, "bit count wrong: old = %d, new = %d, size = %d", a, b, size);
-
-    return b;
+	return bit_fns_new(bitmap, size, 1);
 }
 
 int bit_fns_new(struct sys_bitarray *bitmap, int size, int n)
 {
-    bm_t *clone = __clone(bitmap);
-    int a = bit_fns(clone, size, n);
-    int b;
     size_t found_at;
     int ret = sys_bitarray_find_nth_set(bitmap, n, size, 0, &found_at);
     __ASSERT_NO_MSG(ret >= 0);
     if (ret == 1) {
-    	b = -1;
+    	return -1;
     } else {
-    	b = found_at;
+    	return found_at;
     }
-    __frag_dec_log_bits_new(bitmap, size);
-    __ASSERT(a == b, "bit count wrong: old = %d, new = %d, size = %d, n = %d", a, b, size, n);
-    return b;
 }
 
 
 void bit_clear_all_new(struct sys_bitarray *bitmap, int size) {
-    bm_t *clone = __clone(bitmap);
-	bit_clear_all(clone, size);
 	sys_bitarray_clear_region(bitmap, size, 0);
-	__cmp(clone, bitmap, size);
 }
