@@ -573,7 +573,7 @@ int sys_bitarray_find_nth_set(sys_bitarray_t *bitarray, size_t n, size_t num_bit
 
 	key = k_spin_lock(&bitarray->lock);
 
-	if (num_bits == 0 || offset + num_bits > bitarray->num_bits) {
+	if (n == 0 || num_bits == 0 || offset + num_bits > bitarray->num_bits) {
 		ret = -EINVAL;
 		goto out;
 	}
