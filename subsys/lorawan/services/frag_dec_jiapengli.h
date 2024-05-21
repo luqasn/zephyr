@@ -33,6 +33,7 @@ typedef int (*flash_wr_t)(uint32_t addr, const uint8_t *buf, uint32_t len);
 typedef struct {
 	uint8_t *dt;
 	uint32_t maxlen;
+	/** number of fragments */
 	uint16_t nb;
 	uint8_t size;
 	uint16_t tolerence;
@@ -50,7 +51,6 @@ typedef enum {
 
 typedef struct {
 	frag_dec_cfg_t cfg;
-
 	frag_dec_sta_t sta;
 
 	uint16_t lost_frm_count;

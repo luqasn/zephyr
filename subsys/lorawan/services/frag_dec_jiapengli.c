@@ -164,7 +164,7 @@ void frag_dec_lost_frm_matrix_load(frag_dec_t *obj, uint16_t lindex, struct sys_
 	}
 }
 
-bool frag_dec_lost_frm_matrix_is_diagonal(frag_dec_t *obj, uint16_t lindex, int len)
+bool frag_dec_lost_frm_matrix_is_diagonal(uint16_t lindex, int len)
 {
 	return m2t_get_new(&lost_frm_matrix_bm, lindex, lindex, len);
 }
@@ -238,12 +238,6 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 			return FRAG_DEC_ONGOING;
 		}
 
-#ifdef DEBUG
-		LOG_DBG("matrix_line_bm: %d, ", index);
-		frag_dec_log_bits(&matrix_line_bm, obj->cfg.nb);
-		LOG_DBG("matched_lost_frm_bm0: ");
-		frag_dec_log_bits(&matched_lost_frm_bm0, obj->lost_frm_count);
-#endif
 		/* &matched_lost_frm_bm0 now saves new coded frame which excludes all received
 		 * frames content start to diagonal &matched_lost_frm_bm0
 		 */
@@ -259,15 +253,7 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 				LOG_INF("frame_index: %d, lost_frame_index: %d\n", frame_index,
 					lost_frame_index);
 			}
-#ifdef DEBUG
-			LOG_DBG("matched_lost_frm_bm0: ");
-			frag_dec_log_bits(&matched_lost_frm_bm0, obj->lost_frm_count);
-			LOG_DBG("lost_frm_bm: ");
-			frag_dec_log_bits_new(&lost_frm_bm, obj->cfg.nb);
-			LOG_DBG("frame_index: %d, lost_frame_index: %d\n", frame_index,
-				lost_frame_index);
-#endif
-			if (frag_dec_lost_frm_matrix_is_diagonal(obj, lost_frame_index,
+			if (frag_dec_lost_frm_matrix_is_diagonal(lost_frame_index,
 								 obj->lost_frm_count) == false) {
 				break;
 			}

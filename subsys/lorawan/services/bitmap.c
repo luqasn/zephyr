@@ -57,18 +57,21 @@ bool bit_get_new(struct sys_bitarray *bitmap, int index)
 {
 	int lost_frm_bit;
 
-	sys_bitarray_test_bit(bitmap, index, &lost_frm_bit);
-	return lost_frm_bit;
+	int ret = sys_bitarray_test_bit(bitmap, index, &lost_frm_bit);
+	__ASSERT_NO_MSG(ret == 0);
+	return lost_frm_bit != 0;
 }
 
 void bit_set_new(struct sys_bitarray *bitmap, int index)
 {
-    sys_bitarray_set_bit(bitmap, index);
+    int ret = sys_bitarray_set_bit(bitmap, index);
+    __ASSERT_NO_MSG(ret == 0);
 }
 
 void bit_clr_new(struct sys_bitarray *bitmap, int index)
 {
-    sys_bitarray_clear_bit(bitmap, index);
+    int ret = sys_bitarray_clear_bit(bitmap, index);
+    __ASSERT_NO_MSG(ret == 0);
 }
 
 int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
@@ -82,7 +85,8 @@ int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
 
 void bit_xor_new(struct sys_bitarray *des, struct sys_bitarray *src, int size)
 {
-    sys_bitarray_xor(des, src, size, 0);
+    int ret = sys_bitarray_xor(des, src, size, 0);
+    __ASSERT_NO_MSG(ret == 0);
 }
 
 bool bit_is_all_clear_new(struct sys_bitarray *bitmap, int size)
@@ -109,5 +113,6 @@ int bit_fns_new(struct sys_bitarray *bitmap, int size, int n)
 
 
 void bit_clear_all_new(struct sys_bitarray *bitmap, int size) {
-	sys_bitarray_clear_region(bitmap, size, 0);
+	int ret = sys_bitarray_clear_region(bitmap, size, 0);
+	__ASSERT_NO_MSG(ret == 0);
 }
