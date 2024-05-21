@@ -21,13 +21,7 @@ int m2t_map(int x, int y, int m)
 	if (x < y) {
 		return -1;
 	}
-	/* doesn't check to speed up the process */
-	/*
-	if ((x >= m) || (y >= m)) {
-		return -1;
-	}
-	*/
-	return (y + 1) * (m + m - y) / 2 - (m - x);
+	return y * m + x;
 }
 
 bool m2t_get_new(struct sys_bitarray *m2tbm, int x, int y, int m)
