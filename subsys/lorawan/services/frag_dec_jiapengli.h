@@ -54,26 +54,15 @@ typedef struct {
 
 	frag_dec_sta_t sta;
 
-	bm_t *lost_frm_bm;
 	uint16_t lost_frm_count;
-	bm_t *lost_frm_matrix_bm;
 	uint16_t filled_lost_frm_count;
 
-	/* temporary buffer */
-	bm_t *matched_lost_frm_bm0;
-	bm_t *matched_lost_frm_bm1;
-	bm_t *matrix_line_bm;
 	uint8_t *row_data_buf;
 	uint8_t *xor_row_data_buf;
 } frag_dec_t;
 
 int frag_dec_init(frag_dec_t *obj);
 int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len);
-
-void frag_dec_log_bits(bm_t *bitmap, int len);
-void frag_dec_log_bits_new(struct sys_bitarray *bitmap, int len);
-void frag_dec_log_buf(const uint8_t *buf, int len);
-void frag_dec_log(frag_dec_t *obj);
 
 int m2t_map(int x, int y, int m);
 

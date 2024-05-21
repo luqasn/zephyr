@@ -79,33 +79,6 @@ static int buf_xor(uint8_t *des, uint8_t *src, int len)
 	return 0;
 }
 
-void cmp(bm_t *bm, struct sys_bitarray *bm_new, int count)
-{
-	bool a,b;
-    for (int i = 0; i < count; i++) {
-    	a = bit_get(bm, i);
-    	b = bit_get_new(bm_new, i);
-        __ASSERT(a == b, "Mismatch at %d", i);
-    }
-}
-
-void cpy(struct sys_bitarray *from, bm_t *to, int count)
-{
-	for (int i = 0; i < count; i++) {
-		bool a = bit_get_new(from, i);
-		if (a) {
-			bit_set(to, i);
-		} else {
-			bit_clr(to, i);
-		}
-	}
-}
-
-void cpy_all(struct sys_bitarray *from, bm_t *to)
-{
-	cpy(from, to, from->num_bits);
-}
-
 /* #define ALIGN4(x)           (x) = (((x) + 0x03) & ~0x03) */
 #define ALIGN4(x) (x) = (x)
 int frag_dec_init(frag_dec_t *obj)
@@ -116,28 +89,6 @@ int frag_dec_init(frag_dec_t *obj)
 
 	/* TODO: check if obj->cfg.dt is aligned */
 	memset(obj->cfg.dt, 0, obj->cfg.maxlen);
-
-	ALIGN4(i);
-	obj->lost_frm_bm = (bm_t *)(obj->cfg.dt + i);
-	i += (obj->cfg.nb + BM_UNIT - 1) / BM_UNIT * sizeof(bm_t);
-
-	ALIGN4(i);
-	obj->lost_frm_matrix_bm = (bm_t *)(obj->cfg.dt + i);
-	/* left below of the matrix is useless compress used memory */
-	i += (obj->cfg.tolerence * (obj->cfg.tolerence + 1) / 2 + BM_UNIT - 1) / BM_UNIT *
-	     sizeof(bm_t);
-
-	ALIGN4(i);
-	obj->matched_lost_frm_bm0 = (bm_t *)(obj->cfg.dt + i);
-	i += (obj->cfg.tolerence + BM_UNIT - 1) / BM_UNIT * sizeof(bm_t);
-
-	ALIGN4(i);
-	obj->matched_lost_frm_bm1 = (bm_t *)(obj->cfg.dt + i);
-	i += (obj->cfg.tolerence + BM_UNIT - 1) / BM_UNIT * sizeof(bm_t);
-
-	ALIGN4(i);
-	obj->matrix_line_bm = (bm_t *)(obj->cfg.dt + i);
-	i += (obj->cfg.nb + BM_UNIT - 1) / BM_UNIT * sizeof(bm_t);
 
 	ALIGN4(i);
 	obj->row_data_buf = obj->cfg.dt + i;
@@ -377,91 +328,4 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 	}
 	/* process ongoing */
 	return FRAG_DEC_ONGOING;
-}
-
-void frag_dec_log_buf(const uint8_t *buf, int len)
-{
-	for (int i = 0; i < len; i++) {
-		printf("%02X, ", buf[i]);
-	}
-	printf("\n");
-}
-
-void frag_dec_log_bits(bm_t *bitmap, int len)
-{
-	for (int i = 0; i < len; i++) {
-		if (bit_get(bitmap, i)) {
-			printf("1 ");
-		} else {
-			printf("0 ");
-		}
-	}
-	printf("\n");
-}
-
-void frag_dec_log_bits_new(struct sys_bitarray *bitmap, int len)
-{
-	for (int i = 0; i < len; i++) {
-		if (bit_get_new(bitmap, i)) {
-			printf("1 ");
-		} else {
-			printf("0 ");
-		}
-	}
-	printf("\n");
-}
-
-void frag_dec_log_matrix_bits(bm_t *bitmap, int len)
-{
-	int i, j;
-
-	for (i = 0; i < len; i++) {
-		for (j = 0; j < len; j++) {
-			if (m2t_get(bitmap, j, i, len)) {
-				printf("1 ");
-			} else {
-				printf("0 ");
-			}
-		}
-		printf("\n");
-	}
-	if (i == 0) {
-		printf("\n");
-	}
-}
-
-void frag_dec_log_matrix_bits_new(struct sys_bitarray *bitmap, int len)
-{
-	int i, j;
-
-	for (i = 0; i < len; i++) {
-		for (j = 0; j < len; j++) {
-			if (m2t_get_new(bitmap, j, i, len)) {
-				printf("1 ");
-			} else {
-				printf("0 ");
-			}
-		}
-		printf("\n");
-	}
-	if (i == 0) {
-		printf("\n");
-	}
-}
-
-void frag_dec_log(frag_dec_t *obj)
-{
-	int i, j;
-
-	printf("Decode %s\n", (obj->sta == FRAG_DEC_STA_DONE) ? "ok" : "ng");
-	for (i = 0; i < obj->cfg.nb; i++) {
-		frag_dec_flash_rd(obj, i, obj->row_data_buf);
-		for (j = 0; j < obj->cfg.size; j++) {
-			printf("%02X ", obj->row_data_buf[j]);
-		}
-		printf("\n");
-	}
-
-	printf("lost_frm_matrix_bm: (%d)\n", obj->lost_frm_count);
-	frag_dec_log_matrix_bits_new(&lost_frm_matrix_bm, obj->lost_frm_count);
 }

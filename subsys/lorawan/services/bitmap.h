@@ -53,29 +53,8 @@ typedef uint8_t bm_t;
 #define BM_OFST (3) /* 8: 3, 16: 4, 32: 5 */
 #endif
 
-bool bit_get(bm_t *bitmap, int index);
-
-void bit_set(bm_t *bitmap, int index);
-
-void bit_clr(bm_t *bitmap, int index);
-
-int bit_count_ones(bm_t *bitmap, int index);
-
-int bit_ffs(bm_t *bitmap, int size);
-
-/* find the nth set */
-int bit_fns(bm_t *bitmap, int size, int n);
-
-void bit_xor(bm_t *des, bm_t *src, int size);
-
-bool bit_is_all_clear(bm_t *bitmap, int size);
-
-void bit_clear_all(bm_t *bitmap, int size);
 
 int m2t_map(int x, int y, int m);
-bool m2t_get(bm_t *m2tbm, int x, int y, int m);
-void m2t_set(bm_t *m2tbm, int x, int y, int m);
-void m2t_clr(bm_t *m2tbm, int x, int y, int m);
 
 bool bit_get_new(struct sys_bitarray *bitmap, int index);
 
