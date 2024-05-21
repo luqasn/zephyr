@@ -94,12 +94,12 @@ bool bit_is_all_clear_new(struct sys_bitarray *bitmap, int size)
 	return sys_bitarray_is_region_cleared(bitmap, size, 0);
 }
 
-int bit_ffs_new(struct sys_bitarray *bitmap, int size)
+int find_first_set_bit(struct sys_bitarray *bitmap, int size)
 {
-	return bit_fns_new(bitmap, size, 1);
+	return find_nth_set_bit(bitmap, size, 1);
 }
 
-int bit_fns_new(struct sys_bitarray *bitmap, int size, int n)
+int find_nth_set_bit(struct sys_bitarray *bitmap, int size, int n)
 {
     size_t found_at;
     int ret = sys_bitarray_find_nth_set(bitmap, n, size, 0, &found_at);

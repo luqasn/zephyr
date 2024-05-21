@@ -64,10 +64,10 @@ void bit_clr_new(struct sys_bitarray *bitmap, int index);
 
 int bit_count_ones_new(struct sys_bitarray *bitmap, int index);
 
-int bit_ffs_new(struct sys_bitarray *bitmap, int size);
+int find_first_set_bit(struct sys_bitarray *bitmap, int size);
 
 /* find the nth set */
-int bit_fns_new(struct sys_bitarray *bitmap, int size, int n);
+int find_nth_set_bit(struct sys_bitarray *bitmap, int size, int n);
 
 void bit_xor_new(struct sys_bitarray *des, struct sys_bitarray *src, int size);
 
