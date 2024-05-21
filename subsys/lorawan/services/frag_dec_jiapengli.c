@@ -27,6 +27,7 @@ static bool is_power2(uint32_t num)
 	return (num != 0) && ((num & (num - 1)) == 0);
 }
 
+/** pseudo-random number generator */
 static uint32_t prbs23(uint32_t x)
 {
 	uint32_t b0, b1;
@@ -36,7 +37,7 @@ static uint32_t prbs23(uint32_t x)
 	return (x >> 1) + ((b0 ^ b1) << 22);
 }
 
-static int matrix_line_bm_new(struct sys_bitarray *bm, int n, int m)
+static void matrix_line_bm_new(struct sys_bitarray *bm, int n, int m)
 {
 	int mm, x, nbCoeff, r;
 
@@ -45,7 +46,6 @@ static int matrix_line_bm_new(struct sys_bitarray *bm, int n, int m)
 	/* from 0 to m - 1 */
 	if (n < m) {
 		bit_set_new(bm, n);
-		return 0;
 	}
 
 	/* from m to N */
@@ -66,8 +66,6 @@ static int matrix_line_bm_new(struct sys_bitarray *bm, int n, int m)
 		}
 		bit_set_new(bm, r);
 	}
-
-	return 0;
 }
 
 static int buf_xor(uint8_t *des, uint8_t *src, int len)
