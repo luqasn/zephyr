@@ -48,7 +48,6 @@ typedef enum {
 	FRAG_DEC_STA_DONE,
 } frag_dec_sta_t;
 
-/* bm is short for bitmap */
 typedef struct {
 	frag_dec_cfg_t cfg;
 

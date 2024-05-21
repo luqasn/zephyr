@@ -54,9 +54,7 @@ LOG_MODULE_REGISTER(lorawan_frag_transport, CONFIG_LORAWAN_SERVICES_LOG_LEVEL);
 #define FRAG_TOLERANCE (FRAG_MAX_NB * CONFIG_LORAWAN_FRAG_TRANSPORT_MAX_REDUNDANCY / 100U)
 
 #define DEC_BUF_SIZE                                                                               \
-	(((BM_UNIT - 1) * 5 + FRAG_MAX_NB * 2 + FRAG_TOLERANCE * (FRAG_TOLERANCE + 5) / 2) /       \
-		 BM_UNIT * sizeof(bm_t) +                                                          \
-	 FRAG_MAX_SIZE * 2 + 7 * 4) /* alignment */
+	 (FRAG_MAX_SIZE * 2 + 3 * 4) /* alignment */
 
 #endif /* CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI */
 
