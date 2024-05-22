@@ -278,18 +278,19 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 				frag_dec_read_line(&lost_frm_matrix_bm, j,
 						   &matched_lost_frm_bm0,
 						   obj->lost_frame_count);
-				if (bit_get_new(&matched_lost_frm_bm1, j)) {
-					lost_frame_index = find_nth_set_bit(&lost_frm_bm,
-							       obj->cfg.nb, j + 1);
-					bit_xor_new(&matched_lost_frm_bm1,
-						&matched_lost_frm_bm0,
-						obj->lost_frame_count);
-					frag_dec_flash_rd(obj, lost_frame_index, obj->row_data_buf);
-					mem_xor_n(obj->xor_row_data_buf, obj->xor_row_data_buf,
-						obj->row_data_buf, obj->cfg.size);
-					frag_dec_write_line(&lost_frm_matrix_bm, i, &matched_lost_frm_bm1,
-								      obj->lost_frame_count);
+				if (!bit_get_new(&matched_lost_frm_bm1, j)) {
+					continue;
 				}
+				lost_frame_index = find_nth_set_bit(&lost_frm_bm,
+						       obj->cfg.nb, j + 1);
+				bit_xor_new(&matched_lost_frm_bm1,
+					&matched_lost_frm_bm0,
+					obj->lost_frame_count);
+				frag_dec_flash_rd(obj, lost_frame_index, obj->row_data_buf);
+				mem_xor_n(obj->xor_row_data_buf, obj->xor_row_data_buf,
+					obj->row_data_buf, obj->cfg.size);
+				frag_dec_write_line(&lost_frm_matrix_bm, i, &matched_lost_frm_bm1,
+							      obj->lost_frame_count);
 			}
 			frag_dec_flash_wr(obj, frame_index, obj->xor_row_data_buf);
 		}
