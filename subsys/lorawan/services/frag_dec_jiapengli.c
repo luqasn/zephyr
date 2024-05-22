@@ -10,6 +10,7 @@
 
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
+#include "frag_flash.h"
 
 LOG_MODULE_REGISTER(lorawan_frag_dec, CONFIG_LORAWAN_SERVICES_LOG_LEVEL);
 
@@ -104,19 +105,16 @@ void frag_dec_frame_received(frag_dec_t *obj, uint16_t index)
 
 void frag_dec_flash_wr(frag_dec_t *obj, uint16_t index, const uint8_t *buf)
 {
-	obj->cfg.fwr_func(index * obj->cfg.size, buf, obj->cfg.size);
-	/*
-	LOG_DBG("-> index %d, ", index);
-	LOG_HEXDUMP_DBG(buf, obj->cfg.size);
-	*/
+	frag_flash_write(index * obj->cfg.frag_size, (uint8_t*)buf, obj->cfg.frag_size);
 }
 
 void frag_dec_flash_rd(frag_dec_t *obj, uint16_t index, uint8_t *buf)
 {
-	obj->cfg.frd_func(index * obj->cfg.size, buf, obj->cfg.size);
+	frag_flash_read(index * obj->cfg.frag_size, buf, obj->cfg.frag_size);
+//	obj->cfg.frd_func(index * obj->cfg.frag_size, buf, obj->cfg.frag_size);
 	/*
 	LOG_DBG("<- index %d, ", index);
-	LOG_HEXDUMP_DBG(buf, obj->cfg.size);
+	LOG_HEXDUMP_DBG(buf, obj->cfg.frag_size);
 	*/
 }
 
@@ -155,7 +153,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 		return obj->lost_frame_count;
 	}
 
-	if (len != obj->cfg.size) {
+	if (len != obj->cfg.frag_size) {
 		return FRAG_DEC_ERR_INVALID_FRAME;
 	}
 
@@ -179,7 +177,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 	bit_clear_all_new(&matched_lost_frm_bm1, obj->lost_frame_count);
 
 	/* back up input data so that not to mess input data */
-	memcpy(xor_row_data_buf, buf, obj->cfg.size);
+	memcpy(xor_row_data_buf, buf, obj->cfg.frag_size);
 
 	obj->status = FRAG_DEC_STA_CODED;
 	/* coded frames start processing, lost_frame_count is now frozen and should be not
@@ -210,7 +208,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 			frag_dec_flash_rd(obj, i, row_data_buf);
 			/* xor previously received frame with data for current frame */
 			mem_xor_n(xor_row_data_buf, xor_row_data_buf, row_data_buf,
-				  obj->cfg.size);
+				  obj->cfg.frag_size);
 		}
 	}
 	if (unmatched_frame_cnt <= 0) {
@@ -247,7 +245,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 					      obj->lost_frame_count);
 		bit_xor_new(&matched_lost_frm_bm0, &matched_lost_frm_bm1, obj->lost_frame_count);
 		frag_dec_flash_rd(obj, frame_index, row_data_buf);
-		mem_xor_n(xor_row_data_buf, xor_row_data_buf, row_data_buf, obj->cfg.size);
+		mem_xor_n(xor_row_data_buf, xor_row_data_buf, row_data_buf, obj->cfg.frag_size);
 	} while (!bit_is_all_clear_new(&matched_lost_frm_bm0, obj->lost_frame_count));
 
 	if (obj->filled_lost_frm_count != obj->lost_frame_count) {
@@ -275,7 +273,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 				obj->lost_frame_count);
 			frag_dec_flash_rd(obj, lost_frame_index, row_data_buf);
 			mem_xor_n(xor_row_data_buf, xor_row_data_buf,
-				row_data_buf, obj->cfg.size);
+				row_data_buf, obj->cfg.frag_size);
 			frag_dec_write_line(&lost_frm_matrix_bm, i, &matched_lost_frm_bm1,
 						      obj->lost_frame_count);
 		}

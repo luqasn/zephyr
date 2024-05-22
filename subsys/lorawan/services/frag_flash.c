@@ -56,11 +56,7 @@ int frag_flash_init(uint32_t fragment_size)
 	return err;
 }
 
-#if defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_SEMTECH)
 int8_t frag_flash_write(uint32_t addr, uint8_t *data, uint32_t size)
-#elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
-int frag_flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
-#endif
 {
 	int8_t err = 0;
 
@@ -98,11 +94,7 @@ int frag_flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
 	return err == 0 ? 0 : -1;
 }
 
-#if defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_SEMTECH)
 int8_t frag_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
-#elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
-int frag_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
-#endif
 {
 	for (int i = 0; i < cached_frags; i++) {
 		if (frag_cache[i].addr == addr) {

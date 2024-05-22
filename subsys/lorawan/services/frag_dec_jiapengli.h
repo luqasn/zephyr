@@ -27,17 +27,12 @@
 #define FRAG_DEC_ERR_1                   (-4)
 #define FRAG_DEC_ERR_2                   (-5)
 
-typedef int (*flash_rd_t)(uint32_t addr, uint8_t *buf, uint32_t len);
-typedef int (*flash_wr_t)(uint32_t addr, const uint8_t *buf, uint32_t len);
-
 typedef struct {
 	uint8_t *dt;
 	uint32_t maxlen;
 	/** number of fragments */
 	uint16_t nb_frag;
-	uint8_t size;
-	flash_rd_t frd_func;
-	flash_wr_t fwr_func;
+	uint8_t frag_size;
 } frag_dec_cfg_t;
 
 typedef enum {

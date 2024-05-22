@@ -241,7 +241,7 @@ static void frag_transport_package_callback(uint8_t port, bool data_pending, int
 				}
 #elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
 				decoder.cfg.nb_frag = ctx.nb_frag;
-				decoder.cfg.size = ctx.frag_size;
+				decoder.cfg.frag_size = ctx.frag_size;
 				frag_dec_init(&decoder);
 				frag_flash_init(ctx.frag_size);
 				ctx.is_active = true;
@@ -349,9 +349,6 @@ int lorawan_frag_transport_run(void (*transport_finished_cb)(void))
 #if defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_SEMTECH)
 	/* initialize non-zero static variables */
 	ctx.decoder_process_status = FRAG_SESSION_NOT_STARTED;
-#elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
-	decoder.cfg.frd_func = frag_flash_read;
-	decoder.cfg.fwr_func = frag_flash_write;
 #endif
 
 	lorawan_register_downlink_callback(&downlink_cb);
