@@ -56,7 +56,7 @@ typedef struct {
 	uint16_t filled_lost_frm_count;
 } frag_dec_t;
 
-int frag_dec_init(frag_dec_t *obj);
+void frag_dec_init(frag_dec_t *obj);
 int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len);
 
 int m2t_map(int x, int y, int m);

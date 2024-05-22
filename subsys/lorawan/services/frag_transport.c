@@ -148,11 +148,10 @@ static void frag_transport_package_callback(uint8_t port, bool data_pending, int
 
 			uint8_t missing_frag = CLAMP(ctx.nb_frag - ctx.nb_frag_received, 0, 255);
 
+			uint8_t memory_error = 0;
 #ifdef CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_SEMTECH
 			FragDecoderStatus_t decoder_status = FragDecoderGetStatus();
-			uint8_t memory_error = decoder_status.MatrixError;
-#elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
-			uint8_t memory_error = 0; /* ToDo */
+			memory_error = decoder_status.MatrixError;
 #endif
 
 			if (participants == 1 || missing_frag > 0) {
@@ -243,15 +242,10 @@ static void frag_transport_package_callback(uint8_t port, bool data_pending, int
 #elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
 				decoder.cfg.nb_frag = ctx.nb_frag;
 				decoder.cfg.size = ctx.frag_size;
-				if (frag_dec_init(&decoder) < 0) {
-					/* Not enough memory */
-					status |= 1U << 1;
-					LOG_ERR("dec_buf not large enough.");
-				} else {
-					frag_flash_init(ctx.frag_size);
-					ctx.is_active = true;
-					ctx.decoder_process_status = FRAG_DEC_ONGOING;
-				}
+				frag_dec_init(&decoder);
+				frag_flash_init(ctx.frag_size);
+				ctx.is_active = true;
+				ctx.decoder_process_status = FRAG_DEC_ONGOING;
 #endif
 			}
 

@@ -77,7 +77,7 @@ static void _lorawan_fec_parity_matrix_vector(int m, int n, struct sys_bitarray 
 
 /* #define ALIGN4(x)           (x) = (((x) + 0x03) & ~0x03) */
 #define ALIGN4(x) (x) = (x)
-int frag_dec_init(frag_dec_t *obj)
+void frag_dec_init(frag_dec_t *obj)
 {
 	int i, j;
 
@@ -91,8 +91,6 @@ int frag_dec_init(frag_dec_t *obj)
 
 	obj->filled_lost_frm_count = 0;
 	obj->status = FRAG_DEC_STA_UNCODED;
-
-	return i;
 }
 
 void frag_dec_frame_received(frag_dec_t *obj, uint16_t index)
