@@ -165,7 +165,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 {
 	int i, j;
 	int index, unmatched_frame_cnt;
-	int lost_frame_index, frame_index, frame_index1;
+	int lost_frame_index, frame_index;
 
 	if (obj->status == FRAG_DEC_STA_DONE) {
 		return obj->lost_frame_count;
@@ -250,7 +250,6 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 		}
 		/* if current frame contains new information, save it */
 		if (!m2t_get_new(&lost_frm_matrix_bm, lost_frame_index, lost_frame_index, obj->lost_frame_count)) {
-//		if (frag_dec_lost_frm_matrix_is_diagonal(lost_frame_index, obj->lost_frame_count) == false) {
 			frag_dec_write_line(&lost_frm_matrix_bm, lost_frame_index,
 						      &matched_lost_frm_bm0,
 						      obj->lost_frame_count);
@@ -280,13 +279,12 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 						   &matched_lost_frm_bm0,
 						   obj->lost_frame_count);
 				if (bit_get_new(&matched_lost_frm_bm1, j)) {
-					frame_index1 = find_nth_set_bit(&lost_frm_bm,
+					lost_frame_index = find_nth_set_bit(&lost_frm_bm,
 							       obj->cfg.nb, j + 1);
-					frag_dec_flash_rd(obj, frame_index1,
-							  obj->row_data_buf);
 					bit_xor_new(&matched_lost_frm_bm1,
 						&matched_lost_frm_bm0,
 						obj->lost_frame_count);
+					frag_dec_flash_rd(obj, lost_frame_index, obj->row_data_buf);
 					mem_xor_n(obj->xor_row_data_buf, obj->xor_row_data_buf,
 						obj->row_data_buf, obj->cfg.size);
 					frag_dec_write_line(&lost_frm_matrix_bm, i, &matched_lost_frm_bm1,
