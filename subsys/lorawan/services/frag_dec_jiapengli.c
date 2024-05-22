@@ -25,59 +25,65 @@ SYS_BITARRAY_DEFINE_STATIC(matched_lost_frm_bm0, FRAG_TOLERANCE);
 SYS_BITARRAY_DEFINE_STATIC(matched_lost_frm_bm1, FRAG_TOLERANCE);
 SYS_BITARRAY_DEFINE_STATIC(matrix_line_bm, FRAG_MAX_NB);
 
-static int m2t_map(int x, int y, int m)
+/**
+ * Map col (@p x) and row (@p y) of matrix with size @p m to 'flat' index in buffer.
+ * @param x 
+ * @param y 
+ * @param m 
+ * @return index in flat buffer
+ */
+inline static int matrix_location_to_index(int x, int y, int m)
 {
 	return y * m + x;
 }
 
-static bool m2t_get_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+static bool triangular_matrix_get_entry(struct sys_bitarray *m2tbm, int x, int y, int m)
 {
 	/* we are dealing with triangular matrices, so we don't expect actions in the lower half */
 	__ASSERT(x >= y, "x: %d, y: %d, m: %d", x, y, m);
 	int bit;
 
-	int ret = sys_bitarray_test_bit(m2tbm, m2t_map(x,y,m), &bit);
+	int ret = sys_bitarray_test_bit(m2tbm, matrix_location_to_index(x,y,m), &bit);
 	__ASSERT_NO_MSG(ret == 0);
 
 	return bit != 0;
 }
 
-static void m2t_set_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+static void triangular_matrix_set_entry(struct sys_bitarray *m2tbm, int x, int y, int m)
 {
 	/* we are dealing with triangular matrices, so we don't expect actions in the lower half */
 	__ASSERT(x >= y, "x: %d, y: %d, m: %d", x, y, m);
-	sys_bitarray_set_bit(m2tbm, m2t_map(x,y,m));
+	sys_bitarray_set_bit(m2tbm, matrix_location_to_index(x,y,m));
 }
 
-static void m2t_clr_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+static void triangular_matrix_clear_entry(struct sys_bitarray *m2tbm, int x, int y, int m)
 {
 	/* we are dealing with triangular matrices, so we don't expect actions in the lower half */
 	__ASSERT(x >= y, "x: %d, y: %d, m: %d", x, y, m);
-	sys_bitarray_clear_bit(m2tbm, m2t_map(x,y,m));
+	sys_bitarray_clear_bit(m2tbm, matrix_location_to_index(x,y,m));
 }
 
-static bool bit_get_new(struct sys_bitarray *bitmap, int index)
+static bool bit_get(struct sys_bitarray *bitmap, int index)
 {
 	int lost_frm_bit;
-
 	int ret = sys_bitarray_test_bit(bitmap, index, &lost_frm_bit);
 	__ASSERT_NO_MSG(ret == 0);
 	return lost_frm_bit != 0;
 }
 
-static void bit_set_new(struct sys_bitarray *bitmap, int index)
+static void bit_set(struct sys_bitarray *bitmap, int index)
 {
 	int ret = sys_bitarray_set_bit(bitmap, index);
 	__ASSERT_NO_MSG(ret == 0);
 }
 
-static void bit_clr_new(struct sys_bitarray *bitmap, int index)
+static void bit_clear(struct sys_bitarray *bitmap, int index)
 {
 	int ret = sys_bitarray_clear_bit(bitmap, index);
 	__ASSERT_NO_MSG(ret == 0);
 }
 
-static int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
+static int bit_count_ones(struct sys_bitarray *bitmap, int index)
 {
 	size_t count;
 	int ret = sys_bitarray_popcount_region(bitmap, index + 1, 0, &count);
@@ -86,18 +92,13 @@ static int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
 	return b;
 }
 
-static void bit_xor_new(struct sys_bitarray *des, struct sys_bitarray *src, int size)
+static void bit_xor(struct sys_bitarray *des, struct sys_bitarray *src, int size)
 {
 	int ret = sys_bitarray_xor(des, src, size, 0);
 	__ASSERT_NO_MSG(ret == 0);
 }
 
-static bool bit_is_all_clear_new(struct sys_bitarray *bitmap, int size)
-{
-	return sys_bitarray_is_region_cleared(bitmap, size, 0);
-}
-
-static int find_nth_set_bit(struct sys_bitarray *bitmap, int size, int n)
+static int bit_find_nth_bit_set(struct sys_bitarray *bitmap, int size, int n)
 {
 	size_t found_at;
 	int ret = sys_bitarray_find_nth_set(bitmap, n, size, 0, &found_at);
@@ -109,9 +110,9 @@ static int find_nth_set_bit(struct sys_bitarray *bitmap, int size, int n)
 	}
 }
 
-static int find_first_set_bit(struct sys_bitarray *bitmap, int size)
+static int bit_find_first_bit_set(struct sys_bitarray *bitmap, int size)
 {
-	return find_nth_set_bit(bitmap, size, 1);
+	return bit_find_nth_bit_set(bitmap, size, 1);
 }
 
 static void bit_clear_all_new(struct sys_bitarray *bitmap, int size) {
@@ -178,7 +179,7 @@ void frag_dec_init(frag_dec_t *obj)
 	/* set all frame lost, from 0 to nb_frag-1 */
 	obj->lost_frame_count = obj->cfg.nb_frag;
 	for (j = 0; j < obj->cfg.nb_frag; j++) {
-		bit_set_new(&lost_frm_bm, j);
+		bit_set(&lost_frm_bm, j);
 	}
 
 	obj->filled_lost_frm_count = 0;
@@ -187,8 +188,8 @@ void frag_dec_init(frag_dec_t *obj)
 
 void frag_dec_frame_received(frag_dec_t *obj, uint16_t index)
 {
-	if (bit_get_new(&lost_frm_bm, index)) {
-		bit_clr_new(&lost_frm_bm, index);
+	if (bit_get(&lost_frm_bm, index)) {
+		bit_clear(&lost_frm_bm, index);
 		obj->lost_frame_count--;
 		/* TODO: check and update other maps */
 	}
@@ -197,10 +198,10 @@ void frag_dec_frame_received(frag_dec_t *obj, uint16_t index)
 static void frag_dec_write_line(struct sys_bitarray *matrix, uint16_t line_index, struct sys_bitarray *vector, int len)
 {
 	for (int i = line_index; i < len; i++) {
-		if (bit_get_new(vector, i)) {
-			m2t_set_new(matrix, i, line_index, len);
+		if (bit_get(vector, i)) {
+			triangular_matrix_set_entry(matrix, i, line_index, len);
 		} else {
-			m2t_clr_new(matrix, i, line_index, len);
+			triangular_matrix_clear_entry(matrix, i, line_index, len);
 		}
 	}
 }
@@ -208,10 +209,10 @@ static void frag_dec_write_line(struct sys_bitarray *matrix, uint16_t line_index
 static void frag_dec_read_line(struct sys_bitarray *matrix, uint16_t line_index, struct sys_bitarray *vector, int len)
 {
 	for (int i = 0; i < len; i++) {
-		if (i >= line_index && m2t_get_new(matrix, i, line_index, len)) {
-			bit_set_new(vector, i);
+		if (i >= line_index && triangular_matrix_get_entry(matrix, i, line_index, len)) {
+			bit_set(vector, i);
 		} else {
-			bit_clr_new(vector, i);
+			bit_clear(vector, i);
 		}
 	}
 }
@@ -270,13 +271,13 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 	/* build parity matrix vector for current line */
 	lorawan_fec_parity_matrix_vector(obj->cfg.nb_frag, frameCounter - obj->cfg.nb_frag, &matrix_line_bm);
 	for (i = 0; i < obj->cfg.nb_frag; i++) {
-		if (!bit_get_new(&matrix_line_bm, i)) {
+		if (!bit_get(&matrix_line_bm, i)) {
 			continue;
 		}
-		if (bit_get_new(&lost_frm_bm, i)) {
+		if (bit_get(&lost_frm_bm, i)) {
 			/* coded frame is not matched one received uncoded frame */
 			/* matched_lost_frm_bm0 index is the nth lost frame */
-			bit_set_new(&matched_lost_frm_bm0, bit_count_ones_new(&lost_frm_bm, i) - 1);
+			bit_set(&matched_lost_frm_bm0, bit_count_ones(&lost_frm_bm, i) - 1);
 			unmatched_frame_cnt++;
 		} else {
 			/* restore frame by xoring with already received frame */
@@ -295,19 +296,17 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 	 * frames content start to diagonal &matched_lost_frm_bm0
 	 */
 	do {
-		lost_frame_index = find_first_set_bit(&matched_lost_frm_bm0, obj->lost_frame_count);
+		lost_frame_index = bit_find_first_bit_set(&matched_lost_frm_bm0, obj->lost_frame_count);
+		if (lost_frame_index < 0) {
+			break;
+		}
 		/** we know which one is the next lost frame, try to find it in the lost frame bm */
-		frame_index = find_nth_set_bit(&lost_frm_bm, obj->cfg.nb_frag, lost_frame_index + 1);
-		if (frame_index == -1) {
-			//LOG_INF("matched_lost_frm_bm0: ");
-			//frag_dec_log_bits(&matched_lost_frm_bm0, obj->lost_frame_count);
-			//LOG_INF("lost_frm_bm: ");
-			//frag_dec_log_bits(&lost_frm_bm, obj->cfg.nb_frag);
-			LOG_INF("frame_index: %d, lost_frame_index: %d\n", frame_index,
-				lost_frame_index);
+		frame_index = bit_find_nth_bit_set(&lost_frm_bm, obj->cfg.nb_frag, lost_frame_index + 1);
+		if (frame_index < 0) {
+			break;
 		}
 		/* if current frame contains new information, save it */
-		if (!m2t_get_new(&lost_frm_matrix_bm, lost_frame_index, lost_frame_index, obj->lost_frame_count)) {
+		if (!triangular_matrix_get_entry(&lost_frm_matrix_bm, lost_frame_index, lost_frame_index, obj->lost_frame_count)) {
 			frag_dec_write_line(&lost_frm_matrix_bm, lost_frame_index,
 						      &matched_lost_frm_bm0,
 						      obj->lost_frame_count);
@@ -319,10 +318,10 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 		frag_dec_read_line(&lost_frm_matrix_bm, lost_frame_index,
 					      &matched_lost_frm_bm1,
 					      obj->lost_frame_count);
-		bit_xor_new(&matched_lost_frm_bm0, &matched_lost_frm_bm1, obj->lost_frame_count);
+		bit_xor(&matched_lost_frm_bm0, &matched_lost_frm_bm1, obj->lost_frame_count);
 		frag_flash_read(frame_index * obj->cfg.frag_size, row_data_buf, obj->cfg.frag_size);
 		mem_xor_n(xor_row_data_buf, xor_row_data_buf, row_data_buf, obj->cfg.frag_size);
-	} while (!bit_is_all_clear_new(&matched_lost_frm_bm0, obj->lost_frame_count));
+	} while (!sys_bitarray_is_region_cleared(&matched_lost_frm_bm0, obj->lost_frame_count, 0));
 
 	if (obj->filled_lost_frm_count != obj->lost_frame_count) {
 		return FRAG_DEC_ONGOING;
@@ -330,7 +329,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 
 	/* all frame content is received, now to reconstruct the whole frame */
 	for (i = (obj->lost_frame_count - 2); i >= 0; i--) {
-		frame_index = find_nth_set_bit(&lost_frm_bm, obj->cfg.nb_frag, i + 1);
+		frame_index = bit_find_nth_bit_set(&lost_frm_bm, obj->cfg.nb_frag, i + 1);
 		frag_flash_read(frame_index * obj->cfg.frag_size, xor_row_data_buf, obj->cfg.frag_size);
 		for (j = (obj->lost_frame_count - 1); j > i; j--) {
 			frag_dec_read_line(&lost_frm_matrix_bm, i,
@@ -339,12 +338,12 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 			frag_dec_read_line(&lost_frm_matrix_bm, j,
 					   &matched_lost_frm_bm0,
 					   obj->lost_frame_count);
-			if (!bit_get_new(&matched_lost_frm_bm1, j)) {
+			if (!bit_get(&matched_lost_frm_bm1, j)) {
 				continue;
 			}
-			lost_frame_index = find_nth_set_bit(&lost_frm_bm,
+			lost_frame_index = bit_find_nth_bit_set(&lost_frm_bm,
 					       obj->cfg.nb_frag, j + 1);
-			bit_xor_new(&matched_lost_frm_bm1,
+			bit_xor(&matched_lost_frm_bm1,
 				&matched_lost_frm_bm0,
 				obj->lost_frame_count);
 			frag_flash_read(lost_frame_index * obj->cfg.frag_size, row_data_buf, obj->cfg.frag_size);
