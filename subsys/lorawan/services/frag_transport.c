@@ -51,10 +51,6 @@ LOG_MODULE_REGISTER(lorawan_frag_transport, CONFIG_LORAWAN_SERVICES_LOG_LEVEL);
 	(CONFIG_LORAWAN_FRAG_TRANSPORT_IMAGE_SIZE / CONFIG_LORAWAN_FRAG_TRANSPORT_MIN_FRAG_SIZE +  \
 	 1U)
 #define FRAG_MAX_SIZE  (CONFIG_LORAWAN_FRAG_TRANSPORT_MAX_FRAG_SIZE)
-#define FRAG_TOLERANCE (FRAG_MAX_NB * CONFIG_LORAWAN_FRAG_TRANSPORT_MAX_REDUNDANCY / 100U)
-
-#define DEC_BUF_SIZE                                                                               \
-	 (FRAG_MAX_SIZE * 2 + 3 * 4) /* alignment */
 
 #endif /* CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI */
 
@@ -113,7 +109,6 @@ static struct frag_transport_context ctx;
 
 #ifdef CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI
 frag_dec_t decoder;
-static uint8_t dec_buf[DEC_BUF_SIZE];
 #endif
 
 /* Callback for notification of finished firmware transfer */
@@ -246,7 +241,7 @@ static void frag_transport_package_callback(uint8_t port, bool data_pending, int
 					ctx.decoder_process_status = FRAG_SESSION_ONGOING;
 				}
 #elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
-				decoder.cfg.nb = ctx.nb_frag;
+				decoder.cfg.nb_frag = ctx.nb_frag;
 				decoder.cfg.size = ctx.frag_size;
 				if (frag_dec_init(&decoder) < 0) {
 					/* Not enough memory */
@@ -361,8 +356,6 @@ int lorawan_frag_transport_run(void (*transport_finished_cb)(void))
 	/* initialize non-zero static variables */
 	ctx.decoder_process_status = FRAG_SESSION_NOT_STARTED;
 #elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
-	decoder.cfg.dt = dec_buf;
-	decoder.cfg.maxlen = sizeof(dec_buf);
 	decoder.cfg.frd_func = frag_flash_read;
 	decoder.cfg.fwr_func = frag_flash_write;
 #endif

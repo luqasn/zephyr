@@ -34,7 +34,7 @@ typedef struct {
 	uint8_t *dt;
 	uint32_t maxlen;
 	/** number of fragments */
-	uint16_t nb;
+	uint16_t nb_frag;
 	uint8_t size;
 	flash_rd_t frd_func;
 	flash_wr_t fwr_func;
@@ -54,9 +54,6 @@ typedef struct {
 
 	uint16_t lost_frame_count;
 	uint16_t filled_lost_frm_count;
-
-	uint8_t *row_data_buf;
-	uint8_t *xor_row_data_buf;
 } frag_dec_t;
 
 int frag_dec_init(frag_dec_t *obj);
