@@ -36,7 +36,6 @@ typedef struct {
 	/** number of fragments */
 	uint16_t nb;
 	uint8_t size;
-	uint16_t tolerence;
 	flash_rd_t frd_func;
 	flash_wr_t fwr_func;
 } frag_dec_cfg_t;

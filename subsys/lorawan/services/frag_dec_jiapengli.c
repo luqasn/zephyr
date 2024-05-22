@@ -202,7 +202,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 	 * changed (!!!)
 	 * too many packets are lost, it is not possible to reconstruct data block
 	 */
-	if (obj->lost_frame_count > obj->cfg.tolerence) {
+	if (obj->lost_frame_count > FRAG_TOLERANCE) {
 		/* too many frames are lost, memory is not enough to reconstruct the
 		 * packets
 		 */

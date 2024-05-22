@@ -363,7 +363,6 @@ int lorawan_frag_transport_run(void (*transport_finished_cb)(void))
 #elif defined(CONFIG_LORAWAN_FRAG_TRANSPORT_DECODER_JIAPENGLI)
 	decoder.cfg.dt = dec_buf;
 	decoder.cfg.maxlen = sizeof(dec_buf);
-	decoder.cfg.tolerence = FRAG_TOLERANCE;
 	decoder.cfg.frd_func = frag_flash_read;
 	decoder.cfg.fwr_func = frag_flash_write;
 #endif
