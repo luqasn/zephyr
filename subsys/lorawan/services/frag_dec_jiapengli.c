@@ -326,10 +326,10 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, size_t 
 			return FRAG_DEC_ERR_1;
 		}
 		frag_flash_read(frame_index * obj->cfg.frag_size, xor_row_data_buf, obj->cfg.frag_size);
+		frag_dec_read_line(&lost_frm_matrix_bm, i,
+				   &matched_lost_frm_bm1,
+				   obj->lost_frame_count);
 		for (j = (obj->lost_frame_count - 1); j > i; j--) {
-			frag_dec_read_line(&lost_frm_matrix_bm, i,
-					   &matched_lost_frm_bm1,
-					   obj->lost_frame_count);
 			frag_dec_read_line(&lost_frm_matrix_bm, j,
 					   &matched_lost_frm_bm0,
 					   obj->lost_frame_count);
