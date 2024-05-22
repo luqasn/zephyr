@@ -9,12 +9,10 @@
 #ifndef FRAG_DEC_H_
 #define FRAG_DEC_H_
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <string.h>
+//#include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "bitmap.h"
 
 /*
  * https://github.com/brocaar/lorawan/blob/master/applayer/fragmentation/encode.go
@@ -53,7 +51,5 @@ typedef struct {
 
 void frag_dec_init(frag_dec_t *obj);
 int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len);
-
-int m2t_map(int x, int y, int m);
 
 #endif /* FRAG_DEC_H_ */

@@ -7,10 +7,11 @@
  */
 
 #include "frag_dec_jiapengli.h"
-
-#include <zephyr/sys/util.h>
-#include <zephyr/logging/log.h>
 #include "frag_flash.h"
+
+#include <zephyr/logging/log.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/sys/bitarray.h>
 
 LOG_MODULE_REGISTER(lorawan_frag_dec, CONFIG_LORAWAN_SERVICES_LOG_LEVEL);
 
@@ -24,6 +25,100 @@ SYS_BITARRAY_DEFINE_STATIC(matched_lost_frm_bm0, FRAG_TOLERANCE);
 SYS_BITARRAY_DEFINE_STATIC(matched_lost_frm_bm1, FRAG_TOLERANCE);
 SYS_BITARRAY_DEFINE_STATIC(matrix_line_bm, FRAG_MAX_NB);
 
+static int m2t_map(int x, int y, int m)
+{
+	return y * m + x;
+}
+
+static bool m2t_get_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+{
+	/* we are dealing with triangular matrices, so we don't expect actions in the lower half */
+	__ASSERT(x >= y, "x: %d, y: %d, m: %d", x, y, m);
+	int bit;
+
+	int ret = sys_bitarray_test_bit(m2tbm, m2t_map(x,y,m), &bit);
+	__ASSERT_NO_MSG(ret == 0);
+
+	return bit != 0;
+}
+
+static void m2t_set_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+{
+	/* we are dealing with triangular matrices, so we don't expect actions in the lower half */
+	__ASSERT(x >= y, "x: %d, y: %d, m: %d", x, y, m);
+	sys_bitarray_set_bit(m2tbm, m2t_map(x,y,m));
+}
+
+static void m2t_clr_new(struct sys_bitarray *m2tbm, int x, int y, int m)
+{
+	/* we are dealing with triangular matrices, so we don't expect actions in the lower half */
+	__ASSERT(x >= y, "x: %d, y: %d, m: %d", x, y, m);
+	sys_bitarray_clear_bit(m2tbm, m2t_map(x,y,m));
+}
+
+static bool bit_get_new(struct sys_bitarray *bitmap, int index)
+{
+	int lost_frm_bit;
+
+	int ret = sys_bitarray_test_bit(bitmap, index, &lost_frm_bit);
+	__ASSERT_NO_MSG(ret == 0);
+	return lost_frm_bit != 0;
+}
+
+static void bit_set_new(struct sys_bitarray *bitmap, int index)
+{
+	int ret = sys_bitarray_set_bit(bitmap, index);
+	__ASSERT_NO_MSG(ret == 0);
+}
+
+static void bit_clr_new(struct sys_bitarray *bitmap, int index)
+{
+	int ret = sys_bitarray_clear_bit(bitmap, index);
+	__ASSERT_NO_MSG(ret == 0);
+}
+
+static int bit_count_ones_new(struct sys_bitarray *bitmap, int index)
+{
+	size_t count;
+	int ret = sys_bitarray_popcount_region(bitmap, index + 1, 0, &count);
+	__ASSERT_NO_MSG(ret == 0);
+	int b = count;
+	return b;
+}
+
+static void bit_xor_new(struct sys_bitarray *des, struct sys_bitarray *src, int size)
+{
+	int ret = sys_bitarray_xor(des, src, size, 0);
+	__ASSERT_NO_MSG(ret == 0);
+}
+
+static bool bit_is_all_clear_new(struct sys_bitarray *bitmap, int size)
+{
+	return sys_bitarray_is_region_cleared(bitmap, size, 0);
+}
+
+static int find_nth_set_bit(struct sys_bitarray *bitmap, int size, int n)
+{
+	size_t found_at;
+	int ret = sys_bitarray_find_nth_set(bitmap, n, size, 0, &found_at);
+	__ASSERT_NO_MSG(ret >= 0);
+	if (ret == 1) {
+		return -1;
+	} else {
+		return found_at;
+	}
+}
+
+static int find_first_set_bit(struct sys_bitarray *bitmap, int size)
+{
+	return find_nth_set_bit(bitmap, size, 1);
+}
+
+static void bit_clear_all_new(struct sys_bitarray *bitmap, int size) {
+	int ret = sys_bitarray_clear_region(bitmap, size, 0);
+	__ASSERT_NO_MSG(ret == 0);
+}
+
 /**
  * Generate a 23bit Pseudorandom Binary Sequence (PRBS)
  *
@@ -31,7 +126,7 @@ SYS_BITARRAY_DEFINE_STATIC(matrix_line_bm, FRAG_MAX_NB);
  *
  * @returns Pseudorandom output value
  */
-static int32_t _prbs23(int32_t seed)
+static int32_t prbs23(int32_t seed)
 {
 	int32_t b0 = seed & 1;
 	int32_t b1 = (seed & 32) / 32;
@@ -46,7 +141,7 @@ static int32_t _prbs23(int32_t seed)
  * @param n Coded fragment number (starting at 1 and not 0)
  * @param vec Output vector (buffer size must be greater than m)
  */
-static void _lorawan_fec_parity_matrix_vector(int m, int n, struct sys_bitarray *vec)
+static void lorawan_fec_parity_matrix_vector(int m, int n, struct sys_bitarray *vec)
 {
 	int mm, x, r;
 
@@ -68,7 +163,7 @@ static void _lorawan_fec_parity_matrix_vector(int m, int n, struct sys_bitarray 
 	for (int nb_coeff = 0; nb_coeff < (m / 2); nb_coeff++) {
 		r = (1 << 16);
 		while (r >= m) {
-			x = _prbs23(x);
+			x = prbs23(x);
 			r = x % mm;
 		}
 		int ret = sys_bitarray_set_bit(vec, r);
@@ -76,13 +171,9 @@ static void _lorawan_fec_parity_matrix_vector(int m, int n, struct sys_bitarray 
 	}
 }
 
-/* #define ALIGN4(x)           (x) = (((x) + 0x03) & ~0x03) */
-#define ALIGN4(x) (x) = (x)
 void frag_dec_init(frag_dec_t *obj)
 {
-	int i, j;
-
-	i = 0;
+	int j;
 
 	/* set all frame lost, from 0 to nb_frag-1 */
 	obj->lost_frame_count = obj->cfg.nb_frag;
@@ -105,7 +196,7 @@ void frag_dec_frame_received(frag_dec_t *obj, uint16_t index)
 
 static void frag_dec_write_line(struct sys_bitarray *matrix, uint16_t line_index, struct sys_bitarray *vector, int len)
 {
-	for (int i = 0; i < len; i++) {
+	for (int i = line_index; i < len; i++) {
 		if (bit_get_new(vector, i)) {
 			m2t_set_new(matrix, i, line_index, len);
 		} else {
@@ -117,7 +208,7 @@ static void frag_dec_write_line(struct sys_bitarray *matrix, uint16_t line_index
 static void frag_dec_read_line(struct sys_bitarray *matrix, uint16_t line_index, struct sys_bitarray *vector, int len)
 {
 	for (int i = 0; i < len; i++) {
-		if (m2t_get_new(matrix, i, line_index, len)) {
+		if (i >= line_index && m2t_get_new(matrix, i, line_index, len)) {
 			bit_set_new(vector, i);
 		} else {
 			bit_clr_new(vector, i);
@@ -177,7 +268,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 	}
 	unmatched_frame_cnt = 0;
 	/* build parity matrix vector for current line */
-	_lorawan_fec_parity_matrix_vector(obj->cfg.nb_frag, frameCounter - obj->cfg.nb_frag, &matrix_line_bm);
+	lorawan_fec_parity_matrix_vector(obj->cfg.nb_frag, frameCounter - obj->cfg.nb_frag, &matrix_line_bm);
 	for (i = 0; i < obj->cfg.nb_frag; i++) {
 		if (!bit_get_new(&matrix_line_bm, i)) {
 			continue;
