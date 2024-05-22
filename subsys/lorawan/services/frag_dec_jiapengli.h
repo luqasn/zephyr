@@ -51,9 +51,9 @@ typedef enum {
 
 typedef struct {
 	frag_dec_cfg_t cfg;
-	frag_dec_sta_t sta;
+	frag_dec_sta_t status;
 
-	uint16_t lost_frm_count;
+	uint16_t lost_frame_count;
 	uint16_t filled_lost_frm_count;
 
 	uint8_t *row_data_buf;
