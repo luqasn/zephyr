@@ -333,13 +333,13 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, size_t 
 			if (!bit_get(&matched_lost_frm_bm1, j)) {
 				continue;
 			}
-			frag_dec_read_line(&lost_frm_matrix_bm, j,
-					   &matched_lost_frm_bm0,
-					   obj->lost_frame_count);
 			ret = sys_bitarray_find_nth_set(&lost_frm_bm, j + 1, obj->cfg.nb_frag, 0, &lost_frame_index);
 			if (ret != 0) {
 				return FRAG_DEC_ERR_1;
 			}
+			frag_dec_read_line(&lost_frm_matrix_bm, j,
+					   &matched_lost_frm_bm0,
+					   obj->lost_frame_count);
 			bit_xor(&matched_lost_frm_bm1,
 				&matched_lost_frm_bm0,
 				obj->lost_frame_count);
@@ -349,6 +349,8 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, size_t 
 			frag_dec_write_line(&lost_frm_matrix_bm, i, &matched_lost_frm_bm1,
 						      obj->lost_frame_count);
 		}
+		// TODO: this looks like it should only happen conditionally
+		// because it is so far away from writing to xor_row_data_buf
 		frag_flash_write(frame_index * obj->cfg.frag_size, xor_row_data_buf, obj->cfg.frag_size);
 	}
 	obj->status = FRAG_DEC_STA_DONE;
