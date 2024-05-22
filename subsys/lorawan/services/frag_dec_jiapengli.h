@@ -13,6 +13,7 @@
 //#include <string.h>
 //#include <stdlib.h>
 #include <stdint.h>
+#include <stddef.h>
 
 /*
  * https://github.com/brocaar/lorawan/blob/master/applayer/fragmentation/encode.go
@@ -50,6 +51,6 @@ typedef struct {
 } frag_dec_t;
 
 void frag_dec_init(frag_dec_t *obj);
-int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len);
+int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, size_t len);
 
 #endif /* FRAG_DEC_H_ */
