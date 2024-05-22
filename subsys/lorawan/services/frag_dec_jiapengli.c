@@ -8,6 +8,7 @@
 
 #include "frag_dec_jiapengli.h"
 
+#include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(lorawan_frag_dec, CONFIG_LORAWAN_SERVICES_LOG_LEVEL);
@@ -22,59 +23,56 @@ SYS_BITARRAY_DEFINE_STATIC(matched_lost_frm_bm0, FRAG_TOLERANCE);
 SYS_BITARRAY_DEFINE_STATIC(matched_lost_frm_bm1, FRAG_TOLERANCE);
 SYS_BITARRAY_DEFINE_STATIC(matrix_line_bm, FRAG_MAX_NB);
 
-static bool is_power2(uint32_t num)
+/**
+ * Generate a 23bit Pseudorandom Binary Sequence (PRBS)
+ *
+ * @param seed Seed input value
+ *
+ * @returns Pseudorandom output value
+ */
+static int32_t _prbs23(int32_t seed)
 {
-	return (num != 0) && ((num & (num - 1)) == 0);
+	int32_t b0 = seed & 1;
+	int32_t b1 = (seed & 32) / 32;
+
+	return (seed / 2) + ((b0 ^ b1) << 22);
 }
 
-/** pseudo-random number generator */
-static uint32_t prbs23(uint32_t x)
+/**
+ * Generate vector for coded fragment n of the MxN parity matrix
+ *
+ * @param m Total number of uncoded fragments (M)
+ * @param n Coded fragment number (starting at 1 and not 0)
+ * @param vec Output vector (buffer size must be greater than m)
+ */
+static void _lorawan_fec_parity_matrix_vector(int m, int n, struct sys_bitarray *vec)
 {
-	uint32_t b0, b1;
+	int mm, x, r;
 
-	b0 = (x & 0x00000001);
-	b1 = (x & 0x00000020) >> 5;
-	return (x >> 1) + ((b0 ^ b1) << 22);
-}
+	int ret = sys_bitarray_clear_region(vec, m, 0);
+	__ASSERT_NO_MSG(ret == 0);
 
-static void matrix_line_bm_new(struct sys_bitarray *bm, int n, int m)
-{
-	int mm, x, nbCoeff, r;
-
-	bit_clear_all_new(bm, m);
-
-	/* from 0 to m - 1 */
-	if (n < m) {
-		bit_set_new(bm, n);
+	/*
+	 * Powers of 2 must be treated differently to make sure matrix content is close
+	 * to random. Powers of 2 tend to generate patterns.
+	 */
+	if (is_power_of_two(m)) {
+		mm = m + 1;
+	} else {
+		mm = m;
 	}
-
-	/* from m to N */
-	n = n - m + 1;
-	mm = 0;
-	if (is_power2(m)) {
-		mm = 1;
-	}
-	mm += m;
 
 	x = 1 + (1001 * n);
 
-	for (nbCoeff = 0; nbCoeff < (m / 2); nbCoeff++) {
+	for (int nb_coeff = 0; nb_coeff < (m / 2); nb_coeff++) {
 		r = (1 << 16);
 		while (r >= m) {
-			x = prbs23(x);
+			x = _prbs23(x);
 			r = x % mm;
 		}
-		bit_set_new(bm, r);
+		int ret = sys_bitarray_set_bit(vec, r);
+		__ASSERT_NO_MSG(ret == 0);
 	}
-}
-
-static int buf_xor(uint8_t *des, uint8_t *src, int len)
-{
-	for (int i = 0; i < len; i++) {
-		des[i] ^= src[i];
-	}
-
-	return 0;
 }
 
 /* #define ALIGN4(x)           (x) = (((x) + 0x03) & ~0x03) */
@@ -167,8 +165,8 @@ bool frag_dec_lost_frm_matrix_is_diagonal(uint16_t lindex, int len)
 	return m2t_get_new(&lost_frm_matrix_bm, lindex, lindex, len);
 }
 
-/* fcnt from 1 to nb */
-int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
+/* frameCounter from 1 to nb */
+int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len)
 {
 	int i, j;
 	int index, unmatched_frame_cnt;
@@ -190,7 +188,7 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 	/* back up input data so that not to mess input data */
 	memcpy(obj->xor_row_data_buf, buf, obj->cfg.size);
 
-	index = fcnt - 1;
+	index = frameCounter - 1;
 	if ((index < obj->cfg.nb) && (obj->sta == FRAG_DEC_STA_UNCODED)) {
 		/* uncoded frames under uncoded process */
 		/* mark new received frame */
@@ -215,14 +213,13 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 			return FRAG_DEC_ERR_TOO_MANY_FRAME_LOST;
 		}
 		unmatched_frame_cnt = 0;
-		matrix_line_bm_new(&matrix_line_bm, index, obj->cfg.nb);
+		_lorawan_fec_parity_matrix_vector(obj->cfg.nb, frameCounter - obj->cfg.nb, &matrix_line_bm);
 		for (i = 0; i < obj->cfg.nb; i++) {
 			if (bit_get_new(&matrix_line_bm, i) == true) {
 				if (bit_get_new(&lost_frm_bm, i) == false) {
 					/* coded frame is matched one received uncoded frame */
 					frag_dec_flash_rd(obj, i, obj->row_data_buf);
-					buf_xor(obj->xor_row_data_buf, obj->row_data_buf,
-						obj->cfg.size);
+					mem_xor_n(obj->xor_row_data_buf, obj->xor_row_data_buf, obj-> row_data_buf, obj->cfg.size);
 				} else {
 					/* coded frame is not matched one received uncoded frame */
 					/* matched_lost_frm_bm0 index is the nth lost frame */
@@ -261,7 +258,7 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 						      obj->lost_frm_count);
 			bit_xor_new(&matched_lost_frm_bm0, &matched_lost_frm_bm1, obj->lost_frm_count);
 			frag_dec_flash_rd(obj, frame_index, obj->row_data_buf);
-			buf_xor(obj->xor_row_data_buf, obj->row_data_buf, obj->cfg.size);
+			mem_xor_n(obj->xor_row_data_buf, obj->xor_row_data_buf, obj->row_data_buf, obj->cfg.size);
 			if (bit_is_all_clear_new(&matched_lost_frm_bm0, obj->lost_frm_count)) {
 				no_info = true;
 				break;
@@ -294,7 +291,7 @@ int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len)
 							bit_xor_new(&matched_lost_frm_bm1,
 								&matched_lost_frm_bm0,
 								obj->lost_frm_count);
-							buf_xor(obj->xor_row_data_buf,
+							mem_xor_n(obj->xor_row_data_buf, obj->xor_row_data_buf,
 								obj->row_data_buf, obj->cfg.size);
 							frag_dec_lost_frm_matrix_save(i, &matched_lost_frm_bm1,
 								obj->lost_frm_count);

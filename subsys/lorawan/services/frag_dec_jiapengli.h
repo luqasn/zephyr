@@ -61,7 +61,7 @@ typedef struct {
 } frag_dec_t;
 
 int frag_dec_init(frag_dec_t *obj);
-int frag_dec(frag_dec_t *obj, uint16_t fcnt, const uint8_t *buf, int len);
+int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len);
 
 int m2t_map(int x, int y, int m);
 
