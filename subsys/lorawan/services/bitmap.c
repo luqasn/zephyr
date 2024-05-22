@@ -32,7 +32,8 @@ bool m2t_get_new(struct sys_bitarray *m2tbm, int x, int y, int m)
 		return false;
 	}
 
-	sys_bitarray_test_bit(m2tbm, m2t_map(x,y,m), &bit);
+	int ret = sys_bitarray_test_bit(m2tbm, m2t_map(x,y,m), &bit);
+	__ASSERT_NO_MSG(ret == 0);
 
 	return bit;
 }
