@@ -103,21 +103,6 @@ void frag_dec_frame_received(frag_dec_t *obj, uint16_t index)
 	}
 }
 
-void frag_dec_flash_wr(frag_dec_t *obj, uint16_t index, const uint8_t *buf)
-{
-	frag_flash_write(index * obj->cfg.frag_size, (uint8_t*)buf, obj->cfg.frag_size);
-}
-
-void frag_dec_flash_rd(frag_dec_t *obj, uint16_t index, uint8_t *buf)
-{
-	frag_flash_read(index * obj->cfg.frag_size, buf, obj->cfg.frag_size);
-//	obj->cfg.frd_func(index * obj->cfg.frag_size, buf, obj->cfg.frag_size);
-	/*
-	LOG_DBG("<- index %d, ", index);
-	LOG_HEXDUMP_DBG(buf, obj->cfg.frag_size);
-	*/
-}
-
 static void frag_dec_write_line(struct sys_bitarray *matrix, uint16_t line_index, struct sys_bitarray *vector, int len)
 {
 	for (int i = 0; i < len; i++) {
@@ -163,7 +148,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 		/* mark new received frame */
 		frag_dec_frame_received(obj, index);
 		/* save data to flash */
-		frag_dec_flash_wr(obj, index, buf);
+		frag_flash_write(index * obj->cfg.frag_size, (uint8_t*)buf, obj->cfg.frag_size);
 		/* if no frame lost finish decode process */
 		if (obj->lost_frame_count == 0) {
 			obj->status = FRAG_DEC_STA_DONE;
@@ -205,7 +190,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 		} else {
 			/* restore frame by xoring with already received frame */
 			/* load frame with index i into row_data_buf */
-			frag_dec_flash_rd(obj, i, row_data_buf);
+			frag_flash_read(i * obj->cfg.frag_size, row_data_buf, obj->cfg.frag_size);
 			/* xor previously received frame with data for current frame */
 			mem_xor_n(xor_row_data_buf, xor_row_data_buf, row_data_buf,
 				  obj->cfg.frag_size);
@@ -235,7 +220,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 			frag_dec_write_line(&lost_frm_matrix_bm, lost_frame_index,
 						      &matched_lost_frm_bm0,
 						      obj->lost_frame_count);
-			frag_dec_flash_wr(obj, frame_index, xor_row_data_buf);
+			frag_flash_write(frame_index * obj->cfg.frag_size, xor_row_data_buf, obj->cfg.frag_size);
 			obj->filled_lost_frm_count++;
 			break;
 		}
@@ -244,7 +229,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 					      &matched_lost_frm_bm1,
 					      obj->lost_frame_count);
 		bit_xor_new(&matched_lost_frm_bm0, &matched_lost_frm_bm1, obj->lost_frame_count);
-		frag_dec_flash_rd(obj, frame_index, row_data_buf);
+		frag_flash_read(frame_index * obj->cfg.frag_size, row_data_buf, obj->cfg.frag_size);
 		mem_xor_n(xor_row_data_buf, xor_row_data_buf, row_data_buf, obj->cfg.frag_size);
 	} while (!bit_is_all_clear_new(&matched_lost_frm_bm0, obj->lost_frame_count));
 
@@ -255,7 +240,7 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 	/* all frame content is received, now to reconstruct the whole frame */
 	for (i = (obj->lost_frame_count - 2); i >= 0; i--) {
 		frame_index = find_nth_set_bit(&lost_frm_bm, obj->cfg.nb_frag, i + 1);
-		frag_dec_flash_rd(obj, frame_index, xor_row_data_buf);
+		frag_flash_read(frame_index * obj->cfg.frag_size, xor_row_data_buf, obj->cfg.frag_size);
 		for (j = (obj->lost_frame_count - 1); j > i; j--) {
 			frag_dec_read_line(&lost_frm_matrix_bm, i,
 					   &matched_lost_frm_bm1,
@@ -271,13 +256,13 @@ int frag_dec(frag_dec_t *obj, uint16_t frameCounter, const uint8_t *buf, int len
 			bit_xor_new(&matched_lost_frm_bm1,
 				&matched_lost_frm_bm0,
 				obj->lost_frame_count);
-			frag_dec_flash_rd(obj, lost_frame_index, row_data_buf);
+			frag_flash_read(lost_frame_index * obj->cfg.frag_size, row_data_buf, obj->cfg.frag_size);
 			mem_xor_n(xor_row_data_buf, xor_row_data_buf,
 				row_data_buf, obj->cfg.frag_size);
 			frag_dec_write_line(&lost_frm_matrix_bm, i, &matched_lost_frm_bm1,
 						      obj->lost_frame_count);
 		}
-		frag_dec_flash_wr(obj, frame_index, xor_row_data_buf);
+		frag_flash_write(frame_index * obj->cfg.frag_size, xor_row_data_buf, obj->cfg.frag_size);
 	}
 	obj->status = FRAG_DEC_STA_DONE;
 	return obj->lost_frame_count;
